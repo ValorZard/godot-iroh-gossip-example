@@ -8,3 +8,4 @@ crate-type = ["cdylib"]  # Compile this crate to a dynamic C library.
 
 [dependencies]
 godot = { git = "https://github.com/godot-rust/gdext", rev = "f547a6eda3527884c74a4cf72234c4cffe8e14c7" }
+tokio = { version = "1.44.2", features = ["rt", "rt-multi-thread"] }
