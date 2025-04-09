@@ -6,6 +6,8 @@ use godot::classes::Sprite2D;
 use godot::obj::BaseMut;
 use godot::prelude::*;
 
+use crate::async_singleton::AsyncSingleton;
+
 #[derive(GodotClass)]
 #[class(base=Sprite2D)]
 struct Player {
@@ -42,7 +44,11 @@ impl ISprite2D for Player {
             .damage_taken()
             .connect_self(Self::on_damage_taken);
 
-        //AsyncEventBus::singleton().unwrap().bind_mut().start_async(); // Call the async event bus singleton method
+        // Call the async event bus singleton method
+        let async_singleton = self.base().get_tree().unwrap().get_root().unwrap().get_node_as::<AsyncSingleton>(
+            AsyncSingleton::SINGLETON,
+        );
+        async_singleton.bind().hello();
     }
 
     fn physics_process(&mut self, delta: f64) {

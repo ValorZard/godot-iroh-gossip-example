@@ -156,16 +156,10 @@ impl INode for AsyncSingleton {
 impl AsyncSingleton {
     pub const SINGLETON: &'static str = "AsyncEventBus";
 
-    /// This function has no real use for the user, only to make it easier
-    /// for this crate to access the singleton object.
-    /*
-    pub fn singleton() -> Option<Gd<AsyncEventBus>> {
-        match Engine::singleton().get_singleton(Self::SINGLETON) {
-            Some(singleton) => Some(singleton.cast::<Self>()),
-            None => None,
-        }
+    #[func]
+    pub fn hello(&self) {
+        godot_print!("Hello from Async Singleton!"); // Prints to the Godot console
     }
-    */
 
     #[func]
     pub fn get_ticket(&mut self) -> GString{
