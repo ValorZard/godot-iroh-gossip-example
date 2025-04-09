@@ -45,9 +45,13 @@ impl ISprite2D for Player {
             .connect_self(Self::on_damage_taken);
 
         // Call the async event bus singleton method
-        let async_singleton = self.base().get_tree().unwrap().get_root().unwrap().get_node_as::<AsyncSingleton>(
-            AsyncSingleton::SINGLETON,
-        );
+        let async_singleton = self
+            .base()
+            .get_tree()
+            .unwrap()
+            .get_root()
+            .unwrap()
+            .get_node_as::<AsyncSingleton>(AsyncSingleton::SINGLETON);
         async_singleton.bind().hello();
     }
 

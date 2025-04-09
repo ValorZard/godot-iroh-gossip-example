@@ -111,16 +111,11 @@ async fn subscribe_loop(
 #[class(base=Node)]
 pub struct AsyncSingleton {
     base: Base<Node>,
-    receiver: Option<tokio::sync::mpsc::Receiver<SendData>>,
-    endpoint: Option<Endpoint>,
-    router: Option<Router>,
-    ticket: Option<Ticket>,
-    sender: Option<GossipSender>,
+    ticket_string: GString,
     name: Option<GString>,
-    nodes: Vec<NodeAddr>,
-    topic: Option<TopicId>,
-    remote_message_rx: Option<tokio::sync::mpsc::Receiver<String>>,
-    user_input_sender: Option<GossipSender>,
+    remote_message_receiver: Option<tokio::sync::mpsc::Receiver<String>>,
+    ticket_receiver: Option<tokio::sync::mpsc::Receiver<String>>,
+    user_input_sender: Option<tokio::sync::mpsc::Sender<String>>,
 }
 
 #[godot_api]
@@ -128,33 +123,45 @@ impl INode for AsyncSingleton {
     fn init(base: Base<Node>) -> Self {
         Self {
             base,
-            receiver: None,
-            endpoint: None,
-            router: None,
-            ticket: None,
-            sender: None,
+            ticket_string: "".into(),
             name: None,
-            nodes: vec![],
-            topic: None,
-            remote_message_rx: None,
+            remote_message_receiver: None,
+            ticket_receiver: None,
             user_input_sender: None,
         }
     }
 
-    /*
+    fn ready(&mut self) {}
+
     fn process(&mut self, delta: f64) {
-        if let Some(receiver) = &mut self.receiver {
+        let mut self_gd = self.to_gd();
+        if let Some(receiver) = &mut self.remote_message_receiver {
             while let Some(value) = receiver.try_recv().ok() {
-                godot_print!("Received value: {}", value);
+                self_gd.signals()
+                    .message_received()
+                    .emit(GString::from(value));
+            }
+        }
+
+        if let Some(receiver) = &mut self.ticket_receiver {
+            while let Some(value) = receiver.try_recv().ok() {
+                let ticket_string = GString::from(value);
+                self.ticket_string = ticket_string.clone();
+                self_gd
+                    .signals()
+                    .message_received()
+                    .emit(ticket_string);
             }
         }
     }
-    */
 }
 
 #[godot_api]
 impl AsyncSingleton {
     pub const SINGLETON: &'static str = "AsyncEventBus";
+
+    #[signal]
+    fn message_received(message: GString);
 
     #[func]
     pub fn hello(&self) {
@@ -162,35 +169,41 @@ impl AsyncSingleton {
     }
 
     #[func]
-    pub fn get_ticket(&mut self) -> GString{
-        if let Some(ticket) = &self.ticket {
-            let ticket_str = GString::from(ticket.to_string());
-            return ticket_str;
-        }
-        GString::from("")
+    pub fn get_ticket(&mut self) -> GString {
+        self.ticket_string.clone()
     }
 
     #[func]
     pub fn open_async_chat(&mut self) {
-        self.topic = Some(TopicId::from_bytes(rand::random()));
+        let topic = TopicId::from_bytes(rand::random());
 
-        self.start_gossip();
+        self.start_gossip(topic, vec![]);
     }
 
     #[func]
     pub fn join_async_chat(&mut self, ticket: GString) {
+        godot_print!("Joining async chat with ticket: {}", ticket);
         let Ticket { topic, nodes } = Ticket::from_str(&ticket.to_string()).unwrap();
-        self.topic = Some(topic);
-        self.nodes = nodes;
 
-        self.start_gossip();
+        self.start_gossip(topic, nodes);
     }
 
-    fn start_gossip(&mut self) {
+    fn start_gossip(&mut self, topic: TopicId, nodes: Vec<NodeAddr>) {
         // create a multi-provider, single-consumer channel
         let (remote_message_tx, remote_message_rx) = tokio::sync::mpsc::channel::<String>(1);
-        self.remote_message_rx = Some(remote_message_rx);
-        AsyncRuntime::block_on(async {
+        self.remote_message_receiver = Some(remote_message_rx);
+        let (input_tx, mut input_rx) = tokio::sync::mpsc::channel::<String>(1);
+        self.user_input_sender = Some(input_tx);
+
+        let name = match &self.name {
+            Some(name) => Some(name.to_string()),
+            None => None,
+        };
+
+        let (ticket_tx, ticket_rx) = tokio::sync::mpsc::channel::<String>(1);
+        self.ticket_receiver = Some(ticket_rx);
+
+        AsyncRuntime::spawn(async move {
             let endpoint = Endpoint::builder().discovery_n0().bind().await.unwrap();
 
             println!("> our node id: {}", endpoint.node_id());
@@ -202,8 +215,6 @@ impl AsyncSingleton {
                 .await
                 .unwrap();
 
-            self.router = Some(router);
-
             // in our main file, after we create a topic `id`:
             // print a ticket that includes our own node id and endpoint addresses
             let ticket = {
@@ -212,20 +223,63 @@ impl AsyncSingleton {
                 // addresses.
                 let me = endpoint.node_addr().await.unwrap();
                 let nodes = vec![me];
-                Ticket {
-                    topic: self.topic.unwrap(),
-                    nodes,
-                }
+                Ticket { topic, nodes }
             };
             println!("> ticket to join us: {ticket}");
-            self.ticket = Some(ticket);
+            ticket_tx.send(ticket.to_string()).await.unwrap();
+
+            // join the gossip topic by connecting to known nodes, if any
+            let node_ids = nodes.iter().map(|p| p.node_id).collect();
+            if nodes.is_empty() {
+                println!("> waiting for nodes to join us...");
+            } else {
+                println!("> trying to connect to {} nodes...", nodes.len());
+                // add the peer addrs from the ticket to our endpoint's addressbook so that they can be dialed
+                for node in nodes.into_iter() {
+                    endpoint.add_node_addr(node).unwrap();
+                }
+            };
+            let (sender, receiver) = gossip
+                .subscribe_and_join(topic, node_ids)
+                .await
+                .unwrap()
+                .split();
+            println!("> connected!");
+
+            // broadcast our name, if set
+            if let Some(name) = name {
+                let message = Message::AboutMe {
+                    from: endpoint.node_id(),
+                    name,
+                };
+                sender.broadcast(message.to_vec().into()).await.unwrap();
+            }
+
+            // subscribe and print loop
+            tokio::spawn(subscribe_loop(receiver, remote_message_tx));
+
+            // broadcast each line we type
+            println!("> type a message and hit enter to broadcast...");
+            // listen for lines that we have typed to be sent from `stdin`
+            while let Some(text) = input_rx.recv().await {
+                // create a message from the text
+                let message = Message::Message {
+                    from: endpoint.node_id(),
+                    text: text.clone(),
+                };
+                // broadcast the encoded message
+                sender.broadcast(message.to_vec().into()).await.unwrap();
+                // print to ourselves the text that we sent
+                println!("> sent: {text}");
+            }
+            router.shutdown().await.unwrap();
         });
     }
 
     #[func]
     pub fn poll_receiver(&mut self) -> Array<GString> {
         let mut array = Array::new();
-        if let Some(receiver) = &mut self.remote_message_rx {
+        if let Some(receiver) = &mut self.remote_message_receiver {
             while let Some(value) = receiver.try_recv().ok() {
                 //godot_print!("Received value: {}", value);
                 let message = GString::from(value);
@@ -240,14 +294,13 @@ impl AsyncSingleton {
     #[func]
     pub fn send_message(&self, message: GString) {
         let string = message.to_string();
-        let bytes = string.as_bytes();
-        AsyncRuntime::block_on(async {
-            self.sender
-                .as_ref()
-                .unwrap()
-                .broadcast(bytes.to_vec().into())
-                .await
-                .unwrap();
+        let sender = self.user_input_sender.clone();
+        if sender.is_none() {
+            godot_print!("Sender is not initialized!");
+            return;
+        }
+        AsyncRuntime::spawn(async {
+            sender.unwrap().send(string).await.unwrap();
         });
     }
 }

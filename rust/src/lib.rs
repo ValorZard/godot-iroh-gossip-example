@@ -1,7 +1,7 @@
 use async_runtime::AsyncRuntime;
 use godot::{classes::Engine, prelude::*};
-mod async_singleton;
 mod async_runtime;
+mod async_singleton;
 mod player;
 
 struct MyExtension;

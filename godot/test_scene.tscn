@@ -21,11 +21,29 @@ offset_left = 125.0
 offset_top = 268.0
 offset_right = 251.0
 offset_bottom = 358.0
+text = "Open
+"
 
 [node name="JoinButton" type="Button" parent="."]
 offset_left = 371.0
 offset_top = 274.0
 offset_right = 497.0
 offset_bottom = 364.0
+text = "Join"
+
+[node name="InputTextEdit" type="TextEdit" parent="."]
+offset_left = 126.0
+offset_top = 485.0
+offset_right = 879.0
+offset_bottom = 571.0
+
+[node name="SendButton" type="Button" parent="."]
+offset_left = 946.0
+offset_top = 518.0
+offset_right = 1017.0
+offset_bottom = 559.0
+text = "Send"
 
 [connection signal="button_down" from="OpenButton" to="." method="_on_open_button_button_down"]
+[connection signal="button_down" from="JoinButton" to="." method="_on_join_button_button_down"]
+[connection signal="button_down" from="SendButton" to="." method="_on_send_button_button_down"]
