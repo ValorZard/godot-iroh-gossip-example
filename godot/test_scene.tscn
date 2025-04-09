@@ -9,3 +9,23 @@ script = ExtResource("1_ia1lp")
 [node name="Player" type="Player" parent="."]
 position = Vector2(647, 321)
 texture = ExtResource("1_uhqqe")
+
+[node name="TextEdit" type="TextEdit" parent="."]
+offset_left = 219.0
+offset_top = 67.0
+offset_right = 972.0
+offset_bottom = 153.0
+
+[node name="OpenButton" type="Button" parent="."]
+offset_left = 125.0
+offset_top = 268.0
+offset_right = 251.0
+offset_bottom = 358.0
+
+[node name="JoinButton" type="Button" parent="."]
+offset_left = 371.0
+offset_top = 274.0
+offset_right = 497.0
+offset_bottom = 364.0
+
+[connection signal="button_down" from="OpenButton" to="." method="_on_open_button_button_down"]

@@ -1,9 +1,9 @@
-use async_event_bus::AsyncEventBus;
 use async_runtime::AsyncRuntime;
 use godot::{classes::Engine, prelude::*};
+mod async_singleton;
 mod async_runtime;
-mod async_event_bus;
 mod player;
+mod bootstrap_editor_plugin;
 
 struct MyExtension;
 
@@ -16,7 +16,6 @@ unsafe impl ExtensionLibrary for MyExtension {
 
                 // This is where we register our async runtime singleton.
                 engine.register_singleton(AsyncRuntime::SINGLETON, &AsyncRuntime::new_alloc());
-                engine.register_singleton(AsyncEventBus::SINGLETON, &AsyncEventBus::new_alloc());
             }
             _ => (),
         }
@@ -35,17 +34,6 @@ unsafe impl ExtensionLibrary for MyExtension {
                     godot_warn!(
                         "Failed to find & free singleton -> {}",
                         AsyncRuntime::SINGLETON
-                    );
-                }
-
-                // Here is where we free our async runtime singleton from memory.
-                if let Some(singleton) = engine.get_singleton(AsyncEventBus::SINGLETON) {
-                    engine.unregister_singleton(AsyncEventBus::SINGLETON);
-                    singleton.free();
-                } else {
-                    godot_warn!(
-                        "Failed to find & free singleton -> {}",
-                        AsyncEventBus::SINGLETON
                     );
                 }
             }

@@ -8,6 +8,10 @@ func _ready() -> void:
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _physics_process(delta: float) -> void:
-	var array := AsyncEventBus.poll_receiver()
-	if array.size() > 0:
-		print(array)
+	pass
+
+
+func _on_open_button_button_down() -> void:
+	AsyncEventBus.open_async_chat()
+	$TextEdit.text = AsyncEventBus.get_ticket()
+	pass

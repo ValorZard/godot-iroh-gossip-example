@@ -1,0 +1,3 @@
+[gd_scene format=3 uid="uid://bjyxtm2pchg48"]
+
+[node name="AsyncSingleton" type="AsyncSingleton"]

@@ -1,12 +1,10 @@
 use std::sync::Arc;
 use std::sync::Mutex;
 
+use godot::classes::ISprite2D;
+use godot::classes::Sprite2D;
 use godot::obj::BaseMut;
 use godot::prelude::*;
-use godot::classes::Sprite2D;
-use godot::classes::ISprite2D;
-
-use crate::async_event_bus::AsyncEventBus;
 
 #[derive(GodotClass)]
 #[class(base=Sprite2D)]
@@ -14,7 +12,7 @@ struct Player {
     speed: f64,
     angular_speed: f64,
 
-    base: Base<Sprite2D>
+    base: Base<Sprite2D>,
 }
 
 #[godot_api]
@@ -31,7 +29,7 @@ impl Player {
 impl ISprite2D for Player {
     fn init(base: Base<Sprite2D>) -> Self {
         godot_print!("Hello, world!"); // Prints to the Godot console
-        
+
         Self {
             speed: 400.0,
             angular_speed: std::f64::consts::PI,
@@ -44,7 +42,7 @@ impl ISprite2D for Player {
             .damage_taken()
             .connect_self(Self::on_damage_taken);
 
-        AsyncEventBus::singleton().unwrap().bind_mut().start_async(); // Call the async event bus singleton method
+        //AsyncEventBus::singleton().unwrap().bind_mut().start_async(); // Call the async event bus singleton method
     }
 
     fn physics_process(&mut self, delta: f64) {
@@ -53,7 +51,7 @@ impl ISprite2D for Player {
         // rotation += angular_speed * delta
         // var velocity = Vector2.UP.rotated(rotation) * speed
         // position += velocity * delta
-        
+
         let radians = (self.angular_speed * delta) as f32;
         self.base_mut().rotate(radians);
 
@@ -61,8 +59,7 @@ impl ISprite2D for Player {
         let velocity = Vector2::UP.rotated(rotation) * self.speed as f32;
         self.base_mut().translate(velocity * delta as f32);
 
-
-        // or verbose: 
+        // or verbose:
         // let this = self.base_mut();
         // this.set_position(
         //     this.position() + velocity * delta as f32

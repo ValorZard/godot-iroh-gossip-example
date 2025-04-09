@@ -15,6 +15,11 @@ run/main_scene="uid://c4ah6xvmpksql"
 config/features=PackedStringArray("4.4", "GL Compatibility")
 config/icon="res://icon.svg"
 
+[autoload]
+
+AsyncSingleton="*res://async_event_bus.tscn"
+AsyncEventBus="*res://async_event_bus.tscn"
+
 [rendering]
 
 renderer/rendering_method="gl_compatibility"

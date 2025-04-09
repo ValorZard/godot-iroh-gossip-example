@@ -7,5 +7,14 @@ edition = "2024"
 crate-type = ["cdylib"]  # Compile this crate to a dynamic C library.
 
 [dependencies]
+anyhow = "1.0.97"
+clap = { version = "4.5.35", features = ["derive"] }
+data-encoding = "2.8.0"
+futures-lite = "2.6.0"
 godot = { git = "https://github.com/godot-rust/gdext", rev = "b9ae6b317a26ec035bfeedce71d42f111b30aaf6", features = ["api-4-4"] }
+iroh = "0.34.1"
+iroh-gossip = "0.34.1"
+rand = "0.9.0"
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
 tokio = { version = "1.44.2", features = ["rt", "rt-multi-thread", "time", "sync"] }
