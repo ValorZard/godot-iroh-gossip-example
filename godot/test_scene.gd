@@ -7,7 +7,7 @@ func _ready() -> void:
 	AsyncEventBus.ticket_received.connect(on_ticket_received)
 
 func on_message_received(message: String) -> void:
-	print(message)
+	$ChatBox.text += message + "\n"
 
 func on_ticket_received(ticket: String) -> void:
 	$TicketTextEdit.text = ticket
@@ -27,4 +27,7 @@ func _on_join_button_button_down() -> void:
 
 
 func _on_send_button_button_down() -> void:
-	AsyncEventBus.send_message($InputTextEdit.text)
+	var message : String = $InputTextEdit.text
+	$InputTextEdit.clear()
+	AsyncEventBus.send_message(message)
+	$ChatBox.text += message + "\n"

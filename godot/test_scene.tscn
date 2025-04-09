@@ -33,7 +33,7 @@ text = "Join"
 
 [node name="InputTextEdit" type="TextEdit" parent="."]
 offset_left = 126.0
-offset_top = 485.0
+offset_top = 524.0
 offset_right = 879.0
 offset_bottom = 571.0
 
@@ -43,6 +43,12 @@ offset_top = 518.0
 offset_right = 1017.0
 offset_bottom = 559.0
 text = "Send"
+
+[node name="ChatBox" type="RichTextLabel" parent="."]
+offset_left = 134.0
+offset_top = 394.0
+offset_right = 880.0
+offset_bottom = 514.0
 
 [connection signal="button_down" from="OpenButton" to="." method="_on_open_button_button_down"]
 [connection signal="button_down" from="JoinButton" to="." method="_on_join_button_button_down"]
