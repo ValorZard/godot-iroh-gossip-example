@@ -10,7 +10,7 @@ script = ExtResource("1_ia1lp")
 position = Vector2(647, 321)
 texture = ExtResource("1_uhqqe")
 
-[node name="TextEdit" type="TextEdit" parent="."]
+[node name="TicketTextEdit" type="TextEdit" parent="."]
 offset_left = 219.0
 offset_top = 67.0
 offset_right = 972.0

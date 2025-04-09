@@ -149,7 +149,7 @@ impl INode for AsyncSingleton {
                 self.ticket_string = ticket_string.clone();
                 self_gd
                     .signals()
-                    .message_received()
+                    .ticket_received()
                     .emit(ticket_string);
             }
         }
@@ -162,6 +162,9 @@ impl AsyncSingleton {
 
     #[signal]
     fn message_received(message: GString);
+
+    #[signal]
+    fn ticket_received(message: GString);
 
     #[func]
     pub fn hello(&self) {
