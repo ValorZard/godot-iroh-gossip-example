@@ -3,7 +3,6 @@ use godot::{classes::Engine, prelude::*};
 mod async_singleton;
 mod async_runtime;
 mod player;
-mod bootstrap_editor_plugin;
 
 struct MyExtension;
 
