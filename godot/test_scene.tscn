@@ -1,8 +1,10 @@
-[gd_scene load_steps=2 format=3 uid="uid://c4ah6xvmpksql"]
+[gd_scene load_steps=3 format=3 uid="uid://c4ah6xvmpksql"]
 
+[ext_resource type="Script" uid="uid://df7t14v5ybs3r" path="res://test_scene.gd" id="1_ia1lp"]
 [ext_resource type="Texture2D" uid="uid://bavebskxmpn8h" path="res://icon.svg" id="1_uhqqe"]
 
 [node name="Node2D" type="Node2D"]
+script = ExtResource("1_ia1lp")
 
 [node name="Player" type="Player" parent="."]
 position = Vector2(647, 321)
