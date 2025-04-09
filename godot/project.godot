@@ -17,7 +17,6 @@ config/icon="res://icon.svg"
 
 [autoload]
 
-AsyncSingleton="*res://async_event_bus.tscn"
 AsyncEventBus="*res://async_event_bus.tscn"
 
 [rendering]
