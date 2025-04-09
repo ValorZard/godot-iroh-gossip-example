@@ -43,11 +43,7 @@ impl AsyncEventBus {
             None => None,
         }
     }
-
-    pub fn hello_world() {
-        godot_print!("Hello from AsyncEventBus!");
-    }
-
+    
     #[func]
     pub fn start_async(&mut self) {
         let runtime = AsyncRuntime::runtime();
