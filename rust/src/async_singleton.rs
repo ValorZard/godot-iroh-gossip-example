@@ -115,6 +115,7 @@ pub struct AsyncSingleton {
     name: Option<GString>,
     remote_message_receiver: Option<tokio::sync::mpsc::Receiver<String>>,
     ticket_receiver: Option<tokio::sync::mpsc::Receiver<String>>,
+    print_receiver: Option<tokio::sync::mpsc::Receiver<String>>,
     user_input_sender: Option<tokio::sync::mpsc::Sender<String>>,
 }
 
@@ -127,6 +128,7 @@ impl INode for AsyncSingleton {
             name: None,
             remote_message_receiver: None,
             ticket_receiver: None,
+            print_receiver: None,
             user_input_sender: None,
         }
     }
@@ -151,6 +153,12 @@ impl INode for AsyncSingleton {
                     .signals()
                     .ticket_received()
                     .emit(ticket_string);
+            }
+        }
+
+        if let Some(receiver) = &mut self.print_receiver {
+            while let Some(value) = receiver.try_recv().ok() {
+                godot_print!("{}", value);
             }
         }
     }
@@ -197,6 +205,9 @@ impl AsyncSingleton {
         self.remote_message_receiver = Some(remote_message_rx);
         let (input_tx, mut input_rx) = tokio::sync::mpsc::channel::<String>(1);
         self.user_input_sender = Some(input_tx);
+        let (print_sender, print_receiver) = tokio::sync::mpsc::channel::<String>(32);
+
+        self.print_receiver = Some(print_receiver);
 
         let name = match &self.name {
             Some(name) => Some(name.to_string()),
@@ -209,7 +220,7 @@ impl AsyncSingleton {
         AsyncRuntime::spawn(async move {
             let endpoint = Endpoint::builder().discovery_n0().bind().await.unwrap();
 
-            println!("> our node id: {}", endpoint.node_id());
+            print_sender.send(format!("> our node id: {}", endpoint.node_id())).await.unwrap();
             let gossip = Gossip::builder().spawn(endpoint.clone()).await.unwrap();
 
             let router = Router::builder(endpoint.clone())
@@ -228,15 +239,15 @@ impl AsyncSingleton {
                 let nodes = vec![me];
                 Ticket { topic, nodes }
             };
-            println!("> ticket to join us: {ticket}");
+            print_sender.send(format!("> ticket to join us: {ticket}")).await.unwrap();
             ticket_tx.send(ticket.to_string()).await.unwrap();
 
             // join the gossip topic by connecting to known nodes, if any
             let node_ids = nodes.iter().map(|p| p.node_id).collect();
             if nodes.is_empty() {
-                println!("> waiting for nodes to join us...");
+                print_sender.send(format!("> waiting for nodes to join us...")).await.unwrap();
             } else {
-                println!("> trying to connect to {} nodes...", nodes.len());
+                print_sender.send(format!("> trying to connect to {} nodes...", nodes.len())).await.unwrap();
                 // add the peer addrs from the ticket to our endpoint's addressbook so that they can be dialed
                 for node in nodes.into_iter() {
                     endpoint.add_node_addr(node).unwrap();
@@ -247,7 +258,7 @@ impl AsyncSingleton {
                 .await
                 .unwrap()
                 .split();
-            println!("> connected!");
+            print_sender.send(format!("> connected!")).await.unwrap();
 
             // broadcast our name, if set
             if let Some(name) = name {
@@ -262,7 +273,7 @@ impl AsyncSingleton {
             tokio::spawn(subscribe_loop(receiver, remote_message_tx));
 
             // broadcast each line we type
-            println!("> type a message and hit enter to broadcast...");
+            print_sender.send(format!("> type a message and hit enter to broadcast...")).await.unwrap();
             // listen for lines that we have typed to be sent from `stdin`
             while let Some(text) = input_rx.recv().await {
                 // create a message from the text
